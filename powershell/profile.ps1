@@ -1,7 +1,12 @@
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Warning "profile.ps1 needs PowerShell 7+ (this is $($PSVersionTable.PSVersion)); skipped."
+    return
+}
+
 Set-PSReadLineOption -PredictionSource None
 $PSStyle.FileInfo.Directory = $PSStyle.Foreground.BrightCyan
 
-if ((Get-Location).Path -eq $HOME) {
+if ((Get-Location).Path -eq $HOME -and (Test-Path "C:\src")) {
     Set-Location "C:\src"
 }
 
@@ -68,7 +73,8 @@ function prompt {
     }
 
     Write-Host ""
-    Write-Host '$' -NoNewline -ForegroundColor ($ok ? 'Gray' : 'Red')
+    $markerColor = if ($ok) { 'Gray' } else { 'Red' }
+    Write-Host '$' -NoNewline -ForegroundColor $markerColor
     $global:LASTEXITCODE = $exitCode
     return " "
 }
