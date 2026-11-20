@@ -94,10 +94,9 @@ Set-Variable KitRepo -Value "C:\src\github\learnpoint\kit" -Option ReadOnly -For
 
 function kid {
     go build -C $KitRepo
+    if (-not $?) { Write-Error "kid: build failed, kit not run."; return }
 
-    if ($LASTEXITCODE -eq 0) {
-        & (Join-Path $KitRepo "kit.exe") @args
-    }
+    & (Join-Path $KitRepo "kit.exe") @args
 }
 
 
