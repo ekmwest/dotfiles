@@ -6,21 +6,71 @@ if ((Get-Location).Path -eq $HOME) {
 }
 
 
+function Get-GitHead {
+    if ($PWD.Provider.Name -ne 'FileSystem') { return }
+
+    try {
+        $dir = $PWD.ProviderPath
+        while ($dir) {
+            $dotGit = Join-Path $dir '.git'
+
+            if ([IO.Directory]::Exists($dotGit)) {
+                $gitDir = $dotGit
+                break
+            }
+
+            if ([IO.File]::Exists($dotGit)) {
+                $line = [IO.File]::ReadAllText($dotGit).Trim()
+                if ($line -notmatch '^gitdir:\s*(.+)$') { return }
+                $gitDir = $Matches[1]
+                if (-not [IO.Path]::IsPathRooted($gitDir)) {
+                    $gitDir = [IO.Path]::GetFullPath((Join-Path $dir $gitDir))
+                }
+                break
+            }
+
+            $dir = [IO.Path]::GetDirectoryName($dir)
+        }
+
+        if (-not $gitDir) { return }
+
+        $head = [IO.File]::ReadAllText((Join-Path $gitDir 'HEAD')).Trim()
+
+        if ($head -match '^ref:\s*refs/heads/(.+)$') {
+            return $Matches[1]
+        }
+
+        if ($head.Length -ge 7) {
+            return $head.Substring(0, 7)
+        }
+    }
+    catch {
+        return
+    }
+}
+
+
 function prompt {
+    $ok = $?
     $exitCode = $LASTEXITCODE
     $location = Get-Location
-    $branch = git rev-parse --abbrev-ref HEAD 2>$null
+    $branch = Get-GitHead
 
     Write-Host ""
     Write-Host "$location " -NoNewline -ForegroundColor Green
 
     if ($branch) {
-        Write-Host "($branch)" -NoNewline -ForegroundColor Cyan
+        Write-Host "($branch) " -NoNewline -ForegroundColor Cyan
+    }
+
+    if (-not $ok -and $exitCode -is [int] -and $exitCode -ne 0) {
+        Write-Host "[$exitCode]" -NoNewline -ForegroundColor Red
     }
 
     Write-Host ""
+    Write-Host '$' -NoNewline -ForegroundColor ($ok ? 'Gray' : 'Red')
     $global:LASTEXITCODE = $exitCode
-    return "$ "
+    return " "
 }
 
 
