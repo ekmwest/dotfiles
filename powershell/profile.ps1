@@ -90,13 +90,25 @@ function kid {
 }
 
 
+Set-Variable PlaygroundRoot -Value "C:\src\playground" -Option ReadOnly -Force
+
 function play {
     param(
         [Parameter(Mandatory)]
+        [ValidateScript({
+            -not [string]::IsNullOrWhiteSpace($_) -and
+            $_ -ne '.' -and $_ -ne '..' -and
+            $_.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -lt 0
+        }, ErrorMessage = "'{0}' is not valid. Name must be a single folder name.")]
         [string]$Name
     )
 
-    $path = Join-Path "C:\src\playground" $Name
+    if (-not (Get-Command kit -ErrorAction SilentlyContinue)) {
+        Write-Error "kit not found on PATH."
+        return
+    }
+
+    $path = Join-Path $PlaygroundRoot $Name
 
     if (Test-Path $path) {
         Write-Error "'$path' already exists."
@@ -104,10 +116,12 @@ function play {
     }
 
     New-Item -ItemType Directory -Path $path | Out-Null
-    Set-Location $path
+    Push-Location $path
 
     kit copy ekmwest/empty
     if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        Remove-Item $path -Recurse -Force
         Write-Error "kit copy failed."
         return
     }
