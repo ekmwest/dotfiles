@@ -74,8 +74,19 @@ function prompt {
 }
 
 
-function share($port) {
-    cloudflared tunnel --url "localhost:$port" --http-host-header "localhost:$port"
+function share {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateRange(1, 65535)]
+        [int]$Port
+    )
+
+    if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
+        Write-Error "cloudflared not found on PATH."
+        return
+    }
+
+    cloudflared tunnel --url "localhost:$Port" --http-host-header "localhost:$Port"
 }
 
 
