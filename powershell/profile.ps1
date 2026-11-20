@@ -1,12 +1,13 @@
 Set-PSReadLineOption -PredictionSource None
 $PSStyle.FileInfo.Directory = $PSStyle.Foreground.BrightCyan
 
-if ($env:TERM_PROGRAM -ne "vscode") {
+if ((Get-Location).Path -eq $HOME) {
     Set-Location "C:\src"
 }
 
 
 function prompt {
+    $exitCode = $LASTEXITCODE
     $location = Get-Location
     $branch = git rev-parse --abbrev-ref HEAD 2>$null
 
@@ -18,6 +19,7 @@ function prompt {
     }
 
     Write-Host ""
+    $global:LASTEXITCODE = $exitCode
     return "$ "
 }
 
@@ -60,5 +62,5 @@ function play {
         return
     }
 
-	code . index.html style.css script.js
+    code . index.html style.css script.js
 }
